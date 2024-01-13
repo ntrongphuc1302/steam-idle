@@ -4,7 +4,7 @@ require("dotenv").config();
 
 const user = new SteamUser();
 
-const status = 1; // 0 = offline, 1 = online, 2 = busy, 3 = away, 4 = snooze, 5 = looking to trade, 6 = looking to play 7 = invisible
+const status = 7; // 0 = offline, 1 = online, 2 = busy, 3 = away, 4 = snooze, 5 = looking to trade, 6 = looking to play 7 = invisible
 
 const games = [2399830];
 
