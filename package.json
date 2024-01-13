@@ -1,0 +1,19 @@
+{
+  "name": "steamidler",
+  "version": "1.0.0",
+  "description": "Steam Idler",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "steam"
+  ],
+  "author": "ntrongphuc1302",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.3.1",
+    "steam-totp": "^2.1.2",
+    "steam-user": "^5.0.7"
+  }
+}
