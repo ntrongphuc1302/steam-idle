@@ -32,12 +32,31 @@ function getRandomGames(gameList, count) {
   return randomGames;
 }
 
+function printDuplicatedGameIds(gameList) {
+  const gameIds = gameList.map((game) => game.id);
+  const duplicates = gameIds.filter(
+    (id, index) => gameIds.indexOf(id) !== index
+  );
+  const uniqueDuplicates = [...new Set(duplicates)];
+  if (uniqueDuplicates.length > 0) {
+    console.log(`Duplicated game IDs found: ${uniqueDuplicates.join(", ")}`);
+  } else {
+    console.log("No duplicated game IDs found.");
+  }
+}
+
 function updateGames(user, games) {
+  printDuplicatedGameIds(games); // Check for duplicates before updating
+
   const gamesToPlay = games.length > 32 ? getRandomGames(games, 32) : games;
   const gameIds = gamesToPlay.map((game) => game.id);
   const gameNames = gamesToPlay.map((game) => game.name);
   user.gamesPlayed(gameIds);
-  console.log(`Currently farming ${gamesToPlay.length} games:`, gameNames);
+
+  console.log(
+    `Currently farming ${gamesToPlay.length} of ${games.length} games:`,
+    gameNames
+  );
 }
 
 accounts.forEach((account) => {
