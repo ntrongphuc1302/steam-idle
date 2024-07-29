@@ -2,16 +2,16 @@
 
 # Define variables
 RPI_USER="peter"         # Raspberry Pi username
-RPI_HOST="peterpi.local"  # Raspberry Pi IP address (port 22 is default for SSH)
+RPI_HOST="peterpi.local"  # Raspberry Pi hostname or IP address
 RPI_PATH="/home/peter/steam-idler/"  # Path on Raspberry Pi to deploy the project
 LOCAL_PATH=$(pwd)         # Current directory (assuming deploy.sh is in the project root)
 
 # Build the project (if necessary)
 echo "Preparing Node.js project..."
 
-# Create a tarball of the project excluding sensitive files
+# Create a tarball of the project, excluding sensitive files
 echo "Creating tarball of the project..."
-tar czf project.tar.gz -C "$LOCAL_PATH" . --exclude='.git' --exclude='.env' --exclude='*.session' --exclude='*.session-journal'
+tar czf project.tar.gz -C "$LOCAL_PATH" . --exclude='.git' --exclude='.gitignore' --exclude='node_modules'
 
 # Check if tarball was created successfully
 if [ ! -f project.tar.gz ]; then
@@ -19,43 +19,43 @@ if [ ! -f project.tar.gz ]; then
     exit 1
 fi
 
-# Create the deployment directory on Raspberry Pi
-echo "Creating deployment directory on Raspberry Pi..."
-ssh $RPI_USER@$RPI_HOST "mkdir -p $RPI_PATH"
+# Connect to Raspberry Pi and deploy
+echo "Connecting to Raspberry Pi..."
+
+# Add Raspberry Pi host to known_hosts to avoid SSH host key verification issues
+ssh-keyscan -H $RPI_HOST >> ~/.ssh/known_hosts
+
+# Clean up existing files, keeping only .env
+ssh $RPI_USER@$RPI_HOST << EOF
+    # Change to the deployment directory
+    cd $RPI_PATH || { echo "Failed to cd into $RPI_PATH"; exit 1; }
+
+    # Clean up existing files and directories
+    echo "Cleaning up existing files and directories..."
+    rm -rf *
+
+    # Ensure no tarball exists before copying
+    if [ -f project.tar.gz ]; then
+        echo "Removing old tarball..."
+        rm project.tar.gz
+    fi
+
+    # Exit SSH session
+EOF
 
 # Copy the tarball to the Raspberry Pi
 echo "Copying tarball to Raspberry Pi..."
 scp project.tar.gz $RPI_USER@$RPI_HOST:$RPI_PATH
 
-# Check if the tarball was successfully copied
-if [ $? -ne 0 ]; then
-    echo "Error: Failed to copy tarball to Raspberry Pi."
-    exit 1
-fi
-
-# Connect to Raspberry Pi and deploy
-echo "Deploying on Raspberry Pi..."
-ssh $RPI_USER@$RPI_HOST << 'EOF'
+# Connect again to perform the extraction and setup
+ssh $RPI_USER@$RPI_HOST << EOF
     # Change to the deployment directory
-    cd /home/peter/steam-idler/ || { echo "Failed to cd into /home/peter/steam-idler/"; exit 1; }
+    cd $RPI_PATH || { echo "Failed to cd into $RPI_PATH"; exit 1; }
 
-    # List the current contents for verification
-    echo "Current contents of /home/peter/steam-idler/:"
-    ls -la
-
-    # Clean up existing files
-    echo "Cleaning up existing files..."
-    find . -mindepth 1 -not -name 'project.tar.gz' -not -name '.env' -not -name '.gitignore' -exec rm -rf {} +
-
-    # Extract the tarball and clean up
-    if [ -f project.tar.gz ]; then
-        echo "Extracting tarball..."
-        tar xzf project.tar.gz
-        rm project.tar.gz
-    else
-        echo "Error: Tarball not found."
-        exit 1
-    fi
+    # Extract the tarball
+    echo "Extracting tarball..."
+    tar xzf project.tar.gz
+    rm project.tar.gz
 
     # Update package list and install Node.js if not installed
     echo "Checking and installing Node.js if needed..."
@@ -81,6 +81,12 @@ ssh $RPI_USER@$RPI_HOST << 'EOF'
         exit 1
     fi
 
+    # Run build command if needed
+    if [ -f build.sh ]; then
+        echo "Running build script..."
+        ./build.sh
+    fi
+
     # Start the Node.js script using PM2
     echo "Starting Node.js application with PM2..."
     pm2 start src/index.js --name steam-idler
@@ -91,7 +97,7 @@ ssh $RPI_USER@$RPI_HOST << 'EOF'
     pm2 startup
 
     # Enable PM2 service to start on boot
-    sudo pm2 startup systemd -u peter --hp /home/peter
+    sudo pm2 startup systemd -u $RPI_USER --hp /home/$RPI_USER
 
     # Optional: Check PM2 status
     pm2 ls
