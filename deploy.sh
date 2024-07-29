@@ -24,6 +24,10 @@ fi
 echo "Adding Raspberry Pi host to known_hosts..."
 # ssh-keyscan -H $RPI_HOST >> ~/.ssh/known_hosts
 
+# Ensure deployment directory exists on Raspberry Pi
+echo "Ensuring deployment directory exists on Raspberry Pi..."
+ssh $RPI_USER@$RPI_HOST "mkdir -p $RPI_PATH"
+
 # Copy the tarball to the Raspberry Pi
 echo "Copying tarball to Raspberry Pi..."
 scp project.tar.gz $RPI_USER@$RPI_HOST:$RPI_PATH
@@ -52,9 +56,6 @@ ssh $RPI_USER@$RPI_HOST << EOF
 
     echo "Removing existing files in the deployment directory except for project.tar.gz..."
     find $RPI_PATH -mindepth 1 -maxdepth 1 ! -name 'project.tar.gz' -exec rm -rf {} +
-
-    echo "Ensuring deployment directory exists..."
-    mkdir -p $RPI_PATH
 
     echo "Changing to the deployment directory..."
     cd $RPI_PATH || { echo "Failed to cd into $RPI_PATH"; exit 1; }
