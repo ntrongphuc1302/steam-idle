@@ -2,7 +2,7 @@ const path = require("path");
 const SteamUser = require("steam-user");
 const SteamTotp = require("steam-totp");
 require("dotenv").config({ path: path.resolve(__dirname, "../.env") });
-const { games, games2 } = require("./gameIds");
+const { games, games2 } = require("./data/gamesIds.js");
 
 const accounts = [
   {
