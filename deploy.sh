@@ -11,7 +11,7 @@ echo "Preparing Node.js project..."
 
 # Create a tarball of the project excluding sensitive files
 echo "Creating tarball of the project..."
-tar czf project.tar.gz -C "$LOCAL_PATH" . --exclude='*.git' --exclude='.env' --exclude='*.session' --exclude='*.session-journal'
+tar czf project.tar.gz -C "$LOCAL_PATH" . --exclude='.git' --exclude='.env' --exclude='*.session' --exclude='*.session-journal'
 
 # Check if tarball was created successfully
 if [ ! -f project.tar.gz ]; then
@@ -35,9 +35,17 @@ fi
 
 # Connect to Raspberry Pi and deploy
 echo "Deploying on Raspberry Pi..."
-ssh $RPI_USER@$RPI_HOST << EOF
+ssh $RPI_USER@$RPI_HOST << 'EOF'
     # Change to the deployment directory
-    cd $RPI_PATH || { echo "Failed to cd into $RPI_PATH"; exit 1; }
+    cd /home/peter/steam-idler/ || { echo "Failed to cd into /home/peter/steam-idler/"; exit 1; }
+
+    # List the current contents for verification
+    echo "Current contents of /home/peter/steam-idler/:"
+    ls -la
+
+    # Clean up existing files
+    echo "Cleaning up existing files..."
+    find . -mindepth 1 -not -name 'project.tar.gz' -not -name '.env' -not -name '.gitignore' -exec rm -rf {} +
 
     # Extract the tarball and clean up
     if [ -f project.tar.gz ]; then
@@ -83,13 +91,13 @@ ssh $RPI_USER@$RPI_HOST << EOF
     pm2 startup
 
     # Enable PM2 service to start on boot
-    sudo pm2 startup systemd -u $RPI_USER --hp /home/$RPI_USER
+    sudo pm2 startup systemd -u peter --hp /home/peter
 
     # Optional: Check PM2 status
     pm2 ls
 EOF
 
-# Clean up
+# Clean up local tarball
 echo "Cleaning up local tarball..."
 rm project.tar.gz
 
